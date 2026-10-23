@@ -1,0 +1,16 @@
+# ClusterIP — nginx is the only external door
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafdrop-service
+  labels:
+    app: kafdrop
+spec:
+  type: ClusterIP
+  selector:
+    app: kafdrop
+  ports:
+  - name: ui
+    port: 9000
+    targetPort: 9000
+    protocol: TCP

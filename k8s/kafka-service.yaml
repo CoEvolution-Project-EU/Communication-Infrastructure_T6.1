@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-service
+spec:
+  ports:
+  - name: broker
+    port: 9092
+    targetPort: 9092
+  selector:
+    app: kafka
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-service-external
+spec:
+  ports:
+  - name: broker
+    port: 9093
+    targetPort: 9093
+    nodePort: 30004
+  selector:
+    app: kafka
+  type: NodePort

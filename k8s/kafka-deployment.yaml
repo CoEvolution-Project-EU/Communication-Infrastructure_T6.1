@@ -1,0 +1,60 @@
+# Kafka Deployment — fixed EXTERNAL advertised listener
+# Key change: EXTERNAL://localhost:30004 → EXTERNAL://147.102.19.168:30004
+# Without this fix partners cannot connect — Kafka tells them to connect
+# to "localhost" which means nothing on their server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      nodeSelector:
+        node-role: worker
+      containers:
+      - name: kafka
+        image: confluentinc/cp-kafka:5.3.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9092
+          name: broker
+        - containerPort: 9093
+          name: external
+        env:
+        - name: KAFKA_DELETE_TOPIC_ENABLE
+          value: "true"
+        - name: KAFKA_BROKER_ID
+          value: "1"
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "zookeeper-service:2181"
+        - name: KAFKA_LISTENERS
+          value: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+        # THE CRITICAL FIX:
+        # PLAINTEXT → internal address (for pods inside cluster)
+        # EXTERNAL  → your real public IP (for partners outside cluster)
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://kafka-service:9092,EXTERNAL://147.102.19.168:30004
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: "true"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "1"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/kafka
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: kafka-pvc
